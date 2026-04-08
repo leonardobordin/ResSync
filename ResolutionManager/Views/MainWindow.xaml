@@ -1,0 +1,1195 @@
+<Window x:Class="ResolutionManager.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:h="clr-namespace:ResolutionManager.Helpers"
+        mc:Ignorable="d"
+        Title="ResSync"
+        Height="740" Width="1000"
+        MinHeight="640" MinWidth="880"
+        WindowStartupLocation="CenterScreen"
+        Background="#0B0B16"
+        Icon="/app.ico"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        ResizeMode="CanResizeWithGrip">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="56"
+                      ResizeBorderThickness="6"
+                      UseAeroCaptionButtons="False"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- ── Converters ──────────────────────────────────────── -->
+        <h:NullToVisibilityConverter  x:Key="NullToVisible"/>
+        <h:NullToCollapsedConverter   x:Key="NullToCollapsed"/>
+        <h:NullToBoolConverter        x:Key="NullToBool"/>
+        <h:BoolToBrushConverter       x:Key="MonitorBrush"
+            TrueBrush="#00FF88" FalseBrush="#444455"/>
+
+        <!-- ── Scrollbar ───────────────────────────────────────── -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid>
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border CornerRadius="3" Background="#2A2A45" Margin="1"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Base TextBlock ─────────────────────────────────── -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#D0D0E8"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
+        <!-- ── Slider ─────────────────────────────────────────── -->
+        <Style x:Key="SliderDark" TargetType="Slider">
+            <Setter Property="Foreground" Value="#00D4FF"/>
+            <Setter Property="Background" Value="#1A1A30"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" MinHeight="{TemplateBinding MinHeight}"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Track x:Name="PART_Track" Grid.Row="1">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2" Background="#00D4FF"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton">
+                                                <Border Height="4" CornerRadius="2" Background="#1A1A30"/>
+                                            </ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Width="16" Height="16" CornerRadius="8"
+                                                        Background="#00D4FF"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Primary Button ─────────────────────────────────── -->
+        <Style x:Key="BtnPrimary" TargetType="Button">
+            <Setter Property="Foreground"       Value="#0B0B16"/>
+            <Setter Property="Background"       Value="#00D4FF"/>
+            <Setter Property="BorderThickness"  Value="0"/>
+            <Setter Property="Padding"          Value="18,9"/>
+            <Setter Property="FontWeight"       Value="SemiBold"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="Cursor"           Value="Hand"/>
+            <Setter Property="FontFamily"       Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33DDFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#008FAA"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A1A2E"/>
+                                <Setter Property="Foreground" Value="#3A3A55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Danger Button ──────────────────────────────────── -->
+        <Style x:Key="BtnDanger" TargetType="Button">
+            <Setter Property="Foreground"      Value="#FF3355"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderBrush"     Value="#FF3355"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding"         Value="18,9"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2A0B14"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2A2A40"/>
+                                <Setter Property="Foreground" Value="#3A3A55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Ghost Button ───────────────────────────────────── -->
+        <Style x:Key="BtnGhost" TargetType="Button">
+            <Setter Property="Foreground"      Value="#00D4FF"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderBrush"     Value="#00D4FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding"         Value="18,9"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0D1E2E"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2A2A40"/>
+                                <Setter Property="Foreground" Value="#3A3A55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Icon Button (title bar) ────────────────────────── -->
+        <Style x:Key="BtnIcon" TargetType="Button">
+            <Setter Property="Foreground"      Value="#888899"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width"           Value="42"/>
+            <Setter Property="Height"          Value="42"/>
+            <Setter Property="FontSize"        Value="15"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A1A2E"/>
+                                <Setter Property="Foreground" Value="#D0D0E8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BtnClose" TargetType="Button" BasedOn="{StaticResource BtnIcon}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="Background" Value="#C42B1C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ── Tab nav button ────────────────────────────────── -->
+        <Style x:Key="BtnTab" TargetType="Button">
+            <Setter Property="Foreground"      Value="#555575"/>
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="BorderBrush"     Value="Transparent"/>
+            <Setter Property="Padding"         Value="20,0"/>
+            <Setter Property="Height"          Value="40"/>
+            <Setter Property="FontSize"        Value="12"/>
+            <Setter Property="FontWeight"      Value="SemiBold"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#D0D0E8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Dark TextBox ───────────────────────────────────── -->
+        <Style x:Key="TxtDark" TargetType="TextBox">
+            <Setter Property="Background"      Value="#12121F"/>
+            <Setter Property="Foreground"      Value="#D0D0E8"/>
+            <Setter Property="BorderBrush"     Value="#252538"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding"         Value="10,8"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="FontFamily"      Value="Segoe UI"/>
+            <Setter Property="CaretBrush"      Value="#00D4FF"/>
+            <Setter Property="SelectionBrush"  Value="#00D4FF"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="{TemplateBinding Padding}"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00D4FF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#555566"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Toggle Switch ──────────────────────────────────── -->
+        <Style x:Key="Toggle" TargetType="CheckBox">
+            <Setter Property="Cursor"    Value="Hand"/>
+            <Setter Property="Foreground" Value="#888899"/>
+            <Setter Property="FontSize"   Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border x:Name="Track" Width="38" Height="20" CornerRadius="10"
+                                    Background="#1E1E35">
+                                <Border x:Name="Thumb" Width="14" Height="14" CornerRadius="7"
+                                        Background="#444455" HorizontalAlignment="Left"
+                                        VerticalAlignment="Center" Margin="3,0"/>
+                            </Border>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background" Value="#004055"/>
+                                <Setter TargetName="Thumb" Property="Background" Value="#00D4FF"/>
+                                <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Profile ListBox + ListBoxItem ─────────────────── -->
+        <Style x:Key="ProfileList" TargetType="ListBox">
+            <Setter Property="Background"     Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+
+        <Style x:Key="ProfileItem" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding"    Value="12,10"/>
+            <Setter Property="Margin"     Value="0,2"/>
+            <Setter Property="Cursor"     Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent" BorderThickness="1"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#13132A"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0D1E33"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00D4FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Dark ComboBox ──────────────────────────────────── -->
+        <Style x:Key="CmbDark" TargetType="ComboBox">
+            <Setter Property="Background"       Value="#12121F"/>
+            <Setter Property="Foreground"       Value="#D0D0E8"/>
+            <Setter Property="BorderBrush"      Value="#252538"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="FontSize"         Value="13"/>
+            <Setter Property="FontFamily"       Value="Segoe UI"/>
+            <Setter Property="Padding"          Value="10,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="7">
+                                <Grid Margin="{TemplateBinding Padding}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="24"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="&#x25BE;"
+                                               Foreground="#888899" FontSize="12"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                          Background="Transparent" BorderThickness="0" Opacity="0"/>
+                            <Popup x:Name="PART_Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False"
+                                   Placement="Bottom" PopupAnimation="Fade">
+                                <Border MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="240"
+                                        Background="#1A1A30" BorderBrush="#252538"
+                                        BorderThickness="1" CornerRadius="7" Margin="0,4,0,0">
+                                    <ScrollViewer>
+                                        <ItemsPresenter/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00D4FF"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#00D4FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="#D0D0E8"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Padding"    Value="12,8"/>
+                        <Setter Property="FontFamily" Value="Segoe UI"/>
+                        <Setter Property="FontSize"   Value="13"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#1A2E44"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Foreground" Value="#00D4FF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ── Card border ────────────────────────────────────── -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background"      Value="#11111E"/>
+            <Setter Property="BorderBrush"     Value="#1C1C30"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius"    Value="10"/>
+        </Style>
+
+        <!-- ── Section label ─────────────────────────────────── -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize"   Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#555575"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
+    </Window.Resources>
+
+    <!-- ════════════════════════════════════════════════ ROOT GRID -->
+    <Border BorderBrush="#1C1C30" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56"/>  <!-- Title bar  -->
+                <RowDefinition Height="44"/>  <!-- Nav tabs   -->
+                <RowDefinition Height="*"/>   <!-- Content    -->
+                <RowDefinition Height="36"/>  <!-- Status bar -->
+            </Grid.RowDefinitions>
+
+            <!-- ════════════════════════════════════════ TITLE BAR -->
+            <Border Grid.Row="0"
+                    Background="#09090F"
+                    BorderBrush="#1C1C30"
+                    BorderThickness="0,0,0,1">
+                <Grid Margin="16,0,8,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="30" Height="30" CornerRadius="8"
+                                Background="#0D1E33" BorderBrush="#00D4FF" BorderThickness="1"
+                                Margin="0,0,10,0">
+                            <TextBlock Text="R" FontSize="16" FontWeight="Bold"
+                                       Foreground="#00D4FF"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="RESSYNC" FontSize="15" FontWeight="Bold"
+                                       Foreground="#E8E8F8" FontFamily="Segoe UI"/>
+                            <TextBlock Text="Game Resolution Manager" FontSize="10"
+                                       Foreground="#444465"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Current resolution chip -->
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="#0D0D1A" BorderBrush="#1C1C30" BorderThickness="1"
+                            CornerRadius="20" Padding="14,5">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,7,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#444455"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                                <Setter Property="Fill" Value="#00FF88"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding CurrentResolutionText}"
+                                       FontSize="12" Foreground="#888899"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Window controls -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <Button Style="{StaticResource BtnIcon}" Content="&#x2014;"
+                                Click="MinimizeWindow"/>
+                        <Button Style="{StaticResource BtnIcon}" Content="&#x2610;"
+                                Click="MaximizeRestore"/>
+                        <Button Style="{StaticResource BtnClose}" Content="&#x2715;"
+                                Click="CloseWindow"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════ NAV TABS -->
+            <Border Grid.Row="1" Background="#09090F"
+                    BorderBrush="#1C1C30" BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal" Margin="8,0">
+                    <!-- Perfis tab -->
+                    <Button x:Name="TabBtnProfiles"
+                            Content="PERFIS"
+                            Click="ShowTabProfiles">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource BtnTab}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="0">
+                                        <Setter Property="Foreground" Value="#00D4FF"/>
+                                        <Setter Property="BorderBrush" Value="#00D4FF"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <!-- Configurações tab -->
+                    <Button x:Name="TabBtnSettings"
+                            Content="CONFIGURAÇÕES"
+                            Click="ShowTabSettings">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource BtnTab}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                        <Setter Property="Foreground" Value="#00D4FF"/>
+                                        <Setter Property="BorderBrush" Value="#00D4FF"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- ═══════════════════════════════ TAB CONTENT AREA -->
+            <Grid Grid.Row="2" Margin="16,16,16,12">
+
+                <!-- ─────────────── TAB 0: PERFIS ──────────────── -->
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedTabIndex}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- ══════════════ LEFT: PROFILE SIDEBAR ══════ -->
+                    <Border Grid.Column="0" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Padding="14,12"
+                                    BorderBrush="#1C1C30" BorderThickness="0,0,0,1">
+                                <Grid>
+                                    <TextBlock Text="PERFIS" Style="{StaticResource SectionLabel}"
+                                               VerticalAlignment="Center"/>
+                                    <Button HorizontalAlignment="Right"
+                                            Command="{Binding AddProfileCommand}"
+                                            Style="{StaticResource BtnPrimary}"
+                                            Padding="10,4" FontSize="18" Content="+"
+                                            ToolTip="Adicionar novo perfil"/>
+                                </Grid>
+                            </Border>
+
+                            <ListBox Grid.Row="1"
+                                     ItemsSource="{Binding Profiles}"
+                                     SelectedItem="{Binding SelectedProfile}"
+                                     Style="{StaticResource ProfileList}"
+                                     ItemContainerStyle="{StaticResource ProfileItem}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="#C8C8E0"/>
+                                            <TextBlock Text="{Binding ExecutableName}"
+                                                       FontSize="11" Foreground="#555575"
+                                                       Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding TargetResolutionDisplay}"
+                                                       FontSize="11" Foreground="#00D4FF"
+                                                       Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Border Grid.Row="2" Padding="10,10"
+                                    BorderBrush="#1C1C30" BorderThickness="0,1,0,0">
+                                <Button Content="Remover Perfil"
+                                        Command="{Binding RemoveProfileCommand}"
+                                        Style="{StaticResource BtnDanger}"
+                                        HorizontalAlignment="Stretch"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ═══════════════ RIGHT: DETAIL PANEL ══════ -->
+                    <ScrollViewer Grid.Column="2"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+
+                            <!-- Empty state -->
+                            <Border Visibility="{Binding SelectedProfile, Converter={StaticResource NullToCollapsed}}"
+                                    VerticalAlignment="Center" HorizontalAlignment="Center"
+                                    Margin="0,80,0,0">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="&#x2295;" FontSize="48" Foreground="#1C1C30"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Nenhum perfil selecionado"
+                                               Foreground="#2A2A44" FontSize="15" Margin="0,10,0,0"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text='Clique em "+" para criar um novo perfil'
+                                               Foreground="#1E1E33" FontSize="12" Margin="0,4,0,0"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Profile config card -->
+                            <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14"
+                                    Visibility="{Binding SelectedProfile, Converter={StaticResource NullToVisible}}">
+                                <StackPanel IsEnabled="{Binding IsProfileEditable}">
+                                    <TextBlock Text="CONFIGURAÇÃO DO PERFIL"
+                                               Style="{StaticResource SectionLabel}"
+                                               Margin="0,0,0,16"/>
+
+                                    <!-- Name + Active toggle -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Nome" FontSize="11" Foreground="#555575"
+                                                       Margin="0,0,0,5"/>
+                                            <TextBox Style="{StaticResource TxtDark}"
+                                                     Text="{Binding SelectedProfile.Name, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding SelectedProfile, Converter={StaticResource NullToBool}}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="2" VerticalAlignment="Bottom" Padding="0,0,0,8">
+                                            <CheckBox Style="{StaticResource Toggle}"
+                                                      IsChecked="{Binding SelectedProfile.IsEnabled}"
+                                                      Content="Perfil ativo"
+                                                      Foreground="#888899"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Executable -->
+                                    <TextBlock Text="Executável do Jogo" FontSize="11" Foreground="#555575"
+                                               Margin="0,14,0,5"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="8"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Style="{StaticResource TxtDark}"
+                                                 Text="{Binding SelectedProfile.ExecutablePath}"
+                                                 IsReadOnly="True"/>
+                                        <Button Grid.Column="2" Content="Procurar .exe"
+                                                Command="{Binding BrowseExeCommand}"
+                                                Style="{StaticResource BtnGhost}"/>
+                                    </Grid>
+
+                                    <!-- Monitor picker -->
+                                    <TextBlock Text="Monitor Alvo" FontSize="11" Foreground="#555575"
+                                               Margin="0,14,0,5"/>
+                                    <ComboBox Style="{StaticResource CmbDark}"
+                                              ItemsSource="{Binding Monitors}"
+                                              SelectedItem="{Binding SelectedMonitorForProfile}"
+                                              DisplayMemberPath="."
+                                              IsEnabled="{Binding SelectedProfile, Converter={StaticResource NullToBool}}"/>
+
+                                    <!-- Resolution picker -->
+                                    <TextBlock Text="Resolução Alvo" FontSize="11" Foreground="#555575"
+                                               Margin="0,14,0,5"/>
+                                    <ComboBox Style="{StaticResource CmbDark}"
+                                              ItemsSource="{Binding AvailableResolutions}"
+                                              SelectedItem="{Binding SelectedResolution}"
+                                              DisplayMemberPath="."
+                                              IsEnabled="{Binding SelectedProfile, Converter={StaticResource NullToBool}}"/>
+
+                                    <!-- Digital Vibrance -->
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                                  Style="{StaticResource Toggle}"
+                                                  IsChecked="{Binding SelectedProfile.VibranceEnabled}"
+                                                  Content="Digital Vibrance"
+                                                  Foreground="#888899"
+                                                  VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <!-- NvAPI unavailable warning -->
+                                    <Border CornerRadius="6" Background="#331A00"
+                                            BorderBrush="#663300" BorderThickness="1"
+                                            Padding="10,7" Margin="0,6,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ShowVibranceWarning}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock TextWrapping="Wrap" FontSize="11"
+                                                   Foreground="#FF8040">
+                                            <Run Text="&#x26A0; Driver NVIDIA não detectado — Digital Vibrance não será aplicado."/>
+                                            <LineBreak/>
+                                            <Run Text="Verifique se os drivers NVIDIA estão instalados. Veja CONFIGURAÇÕES &gt; Ferramentas NVIDIA."
+                                                 Foreground="#AA5520"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <Grid Margin="0,8,0,0"
+                                          IsEnabled="{Binding SelectedProfile.VibranceEnabled}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="48"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0"
+                                                Style="{StaticResource SliderDark}"
+                                                Minimum="0" Maximum="100"
+                                                Value="{Binding SelectedProfile.DigitalVibrance}"
+                                                TickFrequency="10"
+                                                IsSnapToTickEnabled="True"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"
+                                                   FontSize="13" Foreground="#00D4FF">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}%">
+                                                    <Binding Path="SelectedProfile.DigitalVibrance"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <!-- Saturação Extra (S-curve gamma ramp) -->
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                                  Style="{StaticResource Toggle}"
+                                                  IsChecked="{Binding SelectedProfile.ExtraSaturationEnabled}"
+                                                  Content="Saturação Extra"
+                                                  Foreground="#888899"
+                                                  VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,8,0,0"
+                                          IsEnabled="{Binding SelectedProfile.ExtraSaturationEnabled}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="48"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Slider Grid.Column="0"
+                                                Style="{StaticResource SliderDark}"
+                                                Minimum="0" Maximum="100"
+                                                Value="{Binding SelectedProfile.ExtraSaturation}"
+                                                TickFrequency="10"
+                                                IsSnapToTickEnabled="True"
+                                                VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right"
+                                                   FontSize="13" Foreground="#C084FC">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{}{0}%">
+                                                    <Binding Path="SelectedProfile.ExtraSaturation"/>
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Monitor / action card -->
+                            <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14"
+                                    Visibility="{Binding SelectedProfile, Converter={StaticResource NullToVisible}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="MONITORAMENTO"
+                                                   Style="{StaticResource SectionLabel}"
+                                                   Margin="0,0,0,4"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="7" Height="7"
+                                                     VerticalAlignment="Center" Margin="0,0,7,0">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="#444455"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                                                <Setter Property="Fill" Value="#00FF88"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                            <TextBlock Text="{Binding StatusMessage}"
+                                                       FontSize="12" Foreground="#888899"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Button Grid.Column="2" Content="Salvar"
+                                            Command="{Binding SaveCommand}"
+                                            Style="{StaticResource BtnGhost}"/>
+
+                                    <Button Grid.Column="4"
+                                            Command="{Binding ApplyNowCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource BtnGhost}">
+                                                <Setter Property="Content" Value="Aplicar Agora"/>
+                                                <Setter Property="ToolTip" Value="Aplica resolução e vibrance imediatamente"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsApplied}" Value="True">
+                                                        <Setter Property="Content" Value="Reverter"/>
+                                                        <Setter Property="Foreground" Value="#FF6633"/>
+                                                        <Setter Property="BorderBrush" Value="#FF6633"/>
+                                                        <Setter Property="ToolTip" Value="Reverte para a resolução e vibrance originais"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Grid.Column="6"
+                                            Command="{Binding ToggleMonitorCommand}"
+                                            MinWidth="150">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
+                                                <Setter Property="Content" Value="&#x25B6;  Iniciar Monitor"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                                        <Setter Property="Content" Value="&#x23F9;  Parar Monitor"/>
+                                                        <Setter Property="Background" Value="#CC2244"/>
+                                                        <Setter Property="Foreground" Value="White"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                            </Border>
+
+                            <!-- Info card -->
+                            <Border Background="#0A0A15"
+                                    BorderBrush="#161628" BorderThickness="1"
+                                    CornerRadius="10" Padding="16,12"
+                                    Visibility="{Binding SelectedProfile, Converter={StaticResource NullToVisible}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#x2139;" FontSize="16" Foreground="#00D4FF"
+                                               VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                    <TextBlock TextWrapping="Wrap" FontSize="12"
+                                               Foreground="#444465" LineHeight="20">
+                                        <Run Text="O ResSync detecta quando o .exe selecionado abre e aplica resolução + vibrance no monitor escolhido."/>
+                                        <Run Text="Ao fechar o app, tudo é restaurado automaticamente."/>
+                                        <LineBreak/>
+                                        <Run Text="Digital Vibrance altera a mesma configuração do Painel de Controle NVIDIA — requer GPU NVIDIA."
+                                             Foreground="#333355"/>
+                                        <LineBreak/>
+                                        <Run Text="Saturação Extra aplica uma curva S sobre o pipeline de cor do monitor (funciona sem GPU NVIDIA). Empilha com Digital Vibrance."
+                                             Foreground="#333355"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ─────────────── TAB 1: CONFIGURAÇÕES ─────────── -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+
+                    <StackPanel MaxWidth="600" HorizontalAlignment="Left">
+
+                        <!-- General settings card -->
+                        <Border Style="{StaticResource Card}" Padding="24" Margin="0,0,0,14">
+                            <StackPanel>
+                                <TextBlock Text="GERAL" Style="{StaticResource SectionLabel}"
+                                           Margin="0,0,0,20"/>
+
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Iniciar com o Windows"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock Text="Adiciona o ResSync à inicialização do Windows."
+                                                   FontSize="11" Foreground="#555575"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource Toggle}"
+                                              IsChecked="{Binding StartWithWindows}"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Iniciar minimizado na bandeja"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock Text="Ao iniciar com o Windows, vai direto para a bandeja sem abrir a janela."
+                                                   FontSize="11" Foreground="#555575"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource Toggle}"
+                                              IsChecked="{Binding StartMinimized}"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Minimizar para a bandeja"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock Text="Ao fechar, o ResSync fica na bandeja do sistema com o monitoramento ativo."
+                                                   FontSize="11" Foreground="#555575"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource Toggle}"
+                                              IsChecked="{Binding MinimizeToTray}"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Monitoramento sempre ativo"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock Text="Reinicia o monitoramento automaticamente ao abrir o ResSync."
+                                                   FontSize="11" Foreground="#555575"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource Toggle}"
+                                              IsChecked="{Binding MonitorExeAlwaysEnabled}"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Save settings button -->
+                        <Button Content="Salvar Configurações"
+                                Command="{Binding SaveSettingsCommand}"
+                                Style="{StaticResource BtnPrimary}"
+                                HorizontalAlignment="Left"
+                                Padding="24,11"/>
+
+                        <!-- Fix NVIDIA card -->
+                        <Border Style="{StaticResource Card}" Padding="20" Margin="0,14,0,0">
+                            <StackPanel>
+                                <TextBlock Text="FERRAMENTAS NVIDIA"
+                                           Style="{StaticResource SectionLabel}"
+                                           Margin="0,0,0,16"/>
+
+                                <!-- NvAPI status row -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                    <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="#AA3333"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsNvidiaAvailable}" Value="True">
+                                                        <Setter Property="Fill" Value="#00FF88"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock FontSize="11" VerticalAlignment="Center"
+                                               Text="{Binding NvApiStatus}"
+                                               TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#FF6644"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsNvidiaAvailable}" Value="True">
+                                                        <Setter Property="Foreground" Value="#00CC66"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Reiniciar Driver de Vídeo"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock FontSize="11" Foreground="#555575"
+                                                   Margin="0,4,0,0" TextWrapping="Wrap"
+                                                   Text="Reinicia o subsistema gráfico (Win+Ctrl+Shift+B). A tela pisca por alguns segundos. Use quando o Digital Vibrance não for aplicado ou o driver travar."/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1" Content="Fix NVIDIA"
+                                            Command="{Binding FixNvidiaCommand}"
+                                            Margin="16,0,0,0">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource BtnGhost}">
+                                                <Setter Property="Foreground"   Value="#FF8040"/>
+                                                <Setter Property="BorderBrush"  Value="#AA4422"/>
+                                                <Setter Property="Padding"      Value="18,9"/>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Info -->
+                        <Border Background="#0A0A15"
+                                BorderBrush="#161628" BorderThickness="1"
+                                CornerRadius="10" Padding="16,12" Margin="0,14,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x2139;" FontSize="16" Foreground="#00D4FF"
+                                           VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12"
+                                           Foreground="#444465" LineHeight="20">
+                                    <Run Text="As configurações são salvas em "/>
+                                    <Run Text="%AppData%\ResSync\config.json"
+                                         Foreground="#00D4FF" FontFamily="Consolas"/>
+                                    <LineBreak/>
+                                    <Run Text="Digital Vibrance altera a mesma configuração do Painel de Controle NVIDIA."
+                                         Foreground="#333355"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
+
+            <!-- ═══════════════════════════════════════ STATUS BAR -->
+            <Border Grid.Row="3" Background="#09090F"
+                    BorderBrush="#1C1C30" BorderThickness="0,1,0,0" Padding="20,0">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Ellipse Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,7,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#333344"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                            <Setter Property="Fill" Value="#00FF88"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding StatusMessage}" FontSize="11" Foreground="#3A3A55"/>
+                    </StackPanel>
+                    <TextBlock Text="v2.0.0  |  ResSync" FontSize="10" Foreground="#222235"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+        </Grid>
+    </Border>
+</Window>
+
+
