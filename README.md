@@ -1,6 +1,10 @@
 # ResSync
 
+> **Projeto desenvolvido inteiramente por Inteligência Artificial (GitHub Copilot / Claude).**
+
 **ResSync** é uma aplicação Windows (WPF) que gerencia automaticamente resolução de tela, taxa de atualização e vibração digital ao detectar que jogos ou aplicativos específicos foram iniciados.
+
+![ResSync Screenshot](docs/screenshot.png)
 
 ---
 
@@ -34,38 +38,45 @@
 ## Estrutura do Projeto
 
 ```
-ResSync.slnx                     # Solution
-ResolutionManager/               # Projeto principal (WPF)
-├── App.xaml / App.xaml.cs       # Ponto de entrada, system tray, ciclo de vida
-├── GlobalUsings.cs              # Aliases globais (WPF vs WinForms)
+ResSync.slnx                      # Arquivo de solução
+README.md                         # Documentação do projeto
+docs/
+└── screenshot.png                # Captura de tela da aplicação
+ResolutionManager/                # Projeto principal (WPF)
+├── App.xaml / App.xaml.cs        # Ponto de entrada, system tray, ciclo de vida
+├── GlobalUsings.cs               # Aliases globais (WPF vs WinForms)
+├── AssemblyInfo.cs               # Informações do assembly
 ├── Models/
-│   ├── AppConfiguration.cs      # Configuração geral da aplicação
-│   ├── AppProfile.cs            # Perfil por aplicativo (resolução, vibrance, monitor)
-│   ├── DisplayMonitor.cs        # Representação de um monitor físico
-│   └── DisplayResolution.cs     # Resolução + taxa de atualização
+│   ├── AppConfiguration.cs       # Configuração geral da aplicação
+│   ├── AppProfile.cs             # Perfil por aplicativo (resolução, vibrance, monitor)
+│   ├── DisplayMonitor.cs         # Representação de um monitor físico
+│   └── DisplayResolution.cs      # Resolução + taxa de atualização
 ├── Native/
-│   └── NativeMethods.cs         # P/Invoke: display settings, gamma ramp, keyboard input
+│   └── NativeMethods.cs          # P/Invoke: display settings, gamma ramp, teclado
 ├── Helpers/
-│   ├── Converters.cs            # Value converters WPF (Null→Visibility, Bool→Brush, etc.)
-│   └── RelayCommand.cs          # Implementação de ICommand
+│   ├── Converters.cs             # Value converters WPF (Null→Visibility, Bool→Brush…)
+│   └── RelayCommand.cs           # Implementação de ICommand
 ├── Services/
-│   ├── IDisplayService.cs       # Interface — resolução, vibrance, saturação
-│   ├── DisplayService.cs        # Implementação via Win32 + NvAPI
+│   ├── IDisplayService.cs        # Interface — resolução, vibrance, saturação
+│   ├── DisplayService.cs         # Implementação via Win32 + NvAPI
 │   ├── IProcessMonitorService.cs
-│   ├── ProcessMonitorService.cs # Polling de processos (1s)
+│   ├── ProcessMonitorService.cs  # Polling de processos (intervalo de 1s)
 │   ├── IConfigurationService.cs
-│   ├── ConfigurationService.cs  # Persistência JSON (%AppData%)
-│   ├── NvApiService.cs          # Wrapper NvAPI (Digital Vibrance NVIDIA)
-│   ├── IResolutionService.cs    # Interface legada
-│   └── ResolutionService.cs     # Implementação legada (usar DisplayService)
+│   ├── ConfigurationService.cs   # Persistência JSON em %AppData%\ResSync\
+│   ├── NvApiService.cs           # Wrapper NvAPI (Digital Vibrance NVIDIA)
+│   ├── IResolutionService.cs     # Interface legada
+│   └── ResolutionService.cs      # Implementação legada (use DisplayService)
 ├── ViewModels/
-│   ├── BaseViewModel.cs         # INotifyPropertyChanged base
-│   ├── MainViewModel.cs         # ViewModel principal
-│   └── ProfileViewModel.cs     # ViewModel de perfil para binding
+│   ├── BaseViewModel.cs          # INotifyPropertyChanged base
+│   ├── MainViewModel.cs          # ViewModel principal
+│   └── ProfileViewModel.cs       # ViewModel de perfil para binding
 └── Views/
-    ├── MainWindow.xaml           # UI principal (custom chrome, dark theme)
-    └── MainWindow.xaml.cs        # Code-behind
-IconGen/                          # Utilitário para gerar o ícone (app.ico)
+    ├── MainWindow.xaml            # UI principal (custom chrome, dark theme)
+    └── MainWindow.xaml.cs         # Code-behind da janela principal
+IconGen/                           # Utilitário para gerar o ícone (app.ico)
+├── IconGen.cs
+├── Program.cs
+└── IconGen.csproj
 ```
 
 ---
