@@ -96,24 +96,6 @@ dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 
 
 ---
 
-## Build e Release Automaticos
-
-O repositorio possui um workflow em `.github/workflows/release.yml`.
-
-A cada `push` na branch `main`, o GitHub Actions:
-
-1. Restaura as dependencias do projeto.
-2. Publica o app self-contained para `win-x64`.
-3. Compacta a pasta publicada em `ResSync-win-x64-vYYYY.MM.DD.N.zip`.
-4. Gera um arquivo `.sha256` do ZIP.
-5. Cria uma nova GitHub Release com tag automatica no formato `vYYYY.MM.DD.N`.
-
-O workflow tambem pode ser executado manualmente pela aba **Actions**.
-
-Para criar Releases automaticamente, em **Settings > Actions > General**, deixe **Workflow permissions** como **Read and write permissions**.
-
----
-
 ## Como Usar
 
 1. Execute **ResSync**.
