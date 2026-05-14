@@ -2,7 +2,7 @@
 
 > **Projeto desenvolvido inteiramente por Inteligência Artificial (GitHub Copilot / Claude).**
 
-**ResSync** é uma aplicação Windows (WPF) que gerencia automaticamente resolução de tela, taxa de atualização e vibração digital ao detectar que jogos ou aplicativos específicos foram iniciados.
+**ResSync** é uma aplicação Windows (WPF) que gerencia automaticamente resolução de tela, taxa de atualização e, em GPUs NVIDIA, Digital Vibrance/saturação ao detectar que jogos ou aplicativos específicos foram iniciados.
 
 ![ResSync Screenshot](docs/screenshot.png)
 
@@ -11,11 +11,11 @@
 ## Funcionalidades
 
 - **Monitoramento de Processos** — Detecta automaticamente quando jogos/apps são executados com base no nome do processo.
-- **Ajuste Automático de Display** — Altera resolução, taxa de atualização e vibração digital quando o app monitorado inicia.
+- **Ajuste Automático de Display** — Altera resolução e taxa de atualização quando o app monitorado inicia.
 - **Restauração Automática** — Reverte todas as configurações de display quando o app monitorado é encerrado.
 - **Suporte Multi-Monitor** — Permite direcionar perfis para qualquer monitor conectado.
-- **Integração NVIDIA** — Controla Digital Vibrance via NvAPI (`nvapi64.dll`).
-- **Saturação Extra via Gamma Ramp** — Aplica curva S no gamma ramp do GDI para cores mais vibrantes (funciona com qualquer GPU).
+- **Integração NVIDIA** — Controla Digital Vibrance e Saturação Extra via NvAPI (`nvapi64.dll`).
+- **Suporte AMD/Outras GPUs** — Mantém somente as opções de resolução, sem exibir controles NVIDIA.
 - **System Tray** — Minimiza para a bandeja do sistema com menu de contexto.
 - **Início com Windows** — Pode iniciar automaticamente com o Windows e já minimizado na bandeja.
 - **Perfis Persistentes** — Configurações salvas em JSON em `%AppData%\ResSync\config.json`.
@@ -28,7 +28,7 @@
 | -------------------- | -------------------------------------------------- |
 | Framework            | .NET 9.0 (WPF + Windows Forms para NotifyIcon)     |
 | Linguagem            | C# 13                                              |
-| Display              | Win32 P/Invoke (`ChangeDisplaySettingsEx`, gamma ramps) |
+| Display              | Win32 P/Invoke (`ChangeDisplaySettingsEx`)              |
 | Vibrance (NVIDIA)    | NvAPI (`nvapi64.dll`)                               |
 | Configuração         | `System.Text.Json`                                  |
 | Arquitetura          | MVVM (Model-View-ViewModel)                         |
@@ -57,15 +57,14 @@ ResolutionManager/                # Projeto principal (WPF)
 │   ├── Converters.cs             # Value converters WPF (Null→Visibility, Bool→Brush…)
 │   └── RelayCommand.cs           # Implementação de ICommand
 ├── Services/
+│   ├── AppLogger.cs             # Log simples em %AppData%\ResSync\
 │   ├── IDisplayService.cs        # Interface — resolução, vibrance, saturação
 │   ├── DisplayService.cs         # Implementação via Win32 + NvAPI
 │   ├── IProcessMonitorService.cs
 │   ├── ProcessMonitorService.cs  # Polling de processos (intervalo de 1s)
 │   ├── IConfigurationService.cs
 │   ├── ConfigurationService.cs   # Persistência JSON em %AppData%\ResSync\
-│   ├── NvApiService.cs           # Wrapper NvAPI (Digital Vibrance NVIDIA)
-│   ├── IResolutionService.cs     # Interface legada
-│   └── ResolutionService.cs      # Implementação legada (use DisplayService)
+│   └── NvApiService.cs           # Wrapper NvAPI (Digital Vibrance NVIDIA)
 ├── ViewModels/
 │   ├── BaseViewModel.cs          # INotifyPropertyChanged base
 │   ├── MainViewModel.cs          # ViewModel principal
@@ -73,10 +72,6 @@ ResolutionManager/                # Projeto principal (WPF)
 └── Views/
     ├── MainWindow.xaml            # UI principal (custom chrome, dark theme)
     └── MainWindow.xaml.cs         # Code-behind da janela principal
-IconGen/                           # Utilitário para gerar o ícone (app.ico)
-├── IconGen.cs
-├── Program.cs
-└── IconGen.csproj
 ```
 
 ---
@@ -85,7 +80,7 @@ IconGen/                           # Utilitário para gerar o ícone (app.ico)
 
 - **Windows 10/11**
 - **.NET 9.0 SDK** — [Download](https://dotnet.microsoft.com/download/dotnet/9.0)
-- GPU NVIDIA (opcional, necessária para Digital Vibrance via NvAPI)
+- GPU NVIDIA opcional para Digital Vibrance e Saturação Extra. Em AMD/outras GPUs, o app exibe apenas resolução.
 
 ---
 
@@ -95,8 +90,8 @@ IconGen/                           # Utilitário para gerar o ícone (app.ico)
 # Build
 dotnet build ResolutionManager/ResolutionManager.csproj
 
-# Publicar como executável único (self-contained)
-dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
+# Publicar self-contained para Windows x64
+dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o publish
 ```
 
 ---
@@ -106,9 +101,10 @@ dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 
 1. Execute **ResSync**.
 2. Crie um novo perfil clicando em **+**.
 3. Selecione o executável do jogo/aplicativo.
-4. Escolha o monitor de destino, a resolução desejada e o nível de vibração digital.
-5. Ative o monitoramento — o ResSync ajustará o display automaticamente quando o app for detectado e restaurará as configurações quando ele fechar.
-6. Minimize para a bandeja do sistema para manter o ResSync rodando em segundo plano.
+4. Escolha o monitor de destino, a resolução de entrada e a resolução ao fechar.
+5. Em GPUs NVIDIA, configure também Digital Vibrance/Saturação Extra.
+6. Use **Aplicar** ou o submenu de aplicação para testar imediatamente, ou ative o monitoramento para aplicar tudo automaticamente quando o app abrir.
+7. Minimize para a bandeja do sistema para manter o ResSync rodando em segundo plano.
 
 ---
 

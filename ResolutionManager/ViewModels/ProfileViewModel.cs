@@ -52,11 +52,27 @@ public sealed class ProfileViewModel : BaseViewModel
     public string TargetResolutionDisplay =>
         _model.TargetResolution is not null ? _model.TargetResolution.ToString() : "—";
 
+    public DisplayResolution? ExitResolution
+    {
+        get => _model.ExitResolution;
+        set { _model.ExitResolution = value; OnPropertyChanged(); OnPropertyChanged(nameof(ExitResolutionDisplay)); }
+    }
+
+    public string ExitResolutionDisplay =>
+        _model.ExitResolution is not null ? _model.ExitResolution.ToString() : "Original";
+
     /// <summary>Win32 device name of the target monitor. Null means primary.</summary>
     public string? TargetMonitorDeviceName
     {
         get => _model.TargetMonitorDeviceName;
         set { _model.TargetMonitorDeviceName = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>Stable monitor identity used to survive Windows DISPLAY renumbering.</summary>
+    public string? TargetMonitorStableId
+    {
+        get => _model.TargetMonitorStableId;
+        set { _model.TargetMonitorStableId = value; OnPropertyChanged(); }
     }
 
     /// <summary>
@@ -87,7 +103,7 @@ public sealed class ProfileViewModel : BaseViewModel
     }
 
     /// <summary>
-    /// Slider / display value for extra saturation S-curve: always 0–100.
+    /// Slider / display value for extra saturation: always 0–100.
     /// The underlying model stores -1 when disabled.
     /// </summary>
     public int ExtraSaturation
@@ -102,7 +118,7 @@ public sealed class ProfileViewModel : BaseViewModel
         }
     }
 
-    /// <summary>Whether extra saturation S-curve is enabled for this profile.</summary>
+    /// <summary>Whether extra saturation is enabled for this profile.</summary>
     public bool ExtraSaturationEnabled
     {
         get => _model.ExtraSaturation >= 0;

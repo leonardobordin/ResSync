@@ -218,6 +218,77 @@
             </Setter>
         </Style>
 
+        <!-- ── Action dropdown menu ──────────────────────────── -->
+        <Style x:Key="ActionMenu" TargetType="ContextMenu">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Background" Value="#11111E"/>
+            <Setter Property="BorderBrush" Value="#252538"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <StackPanel IsItemsHost="True"
+                                        KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionMenuItem" TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#D0D0E8"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="MinWidth" Value="130"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                Padding="{TemplateBinding Padding}"
+                                TextElement.Foreground="{TemplateBinding Foreground}">
+                            <ContentPresenter ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#0D1E33"/>
+                                <Setter Property="Foreground" Value="#00D4FF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#5C5C72"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="NvidiaActionMenuItem" TargetType="MenuItem" BasedOn="{StaticResource ActionMenuItem}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsNvidiaAvailable}" Value="False">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- ── Icon Button (title bar) ────────────────────────── -->
         <Style x:Key="BtnIcon" TargetType="Button">
             <Setter Property="Foreground"      Value="#888899"/>
@@ -747,13 +818,24 @@
                                     </Grid>
 
                                     <!-- Monitor picker -->
-                                    <TextBlock Text="Monitor Alvo" FontSize="11" Foreground="#555575"
-                                               Margin="0,14,0,5"/>
+                                    <Grid Margin="0,14,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Monitor Alvo" FontSize="11" Foreground="#555575"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Column="1" Content="&#x21BB;  Redetectar"
+                                                Command="{Binding RedetectMonitorsCommand}"
+                                                Style="{StaticResource BtnGhost}"
+                                                Padding="10,4" FontSize="11"
+                                                ToolTip="Escanear monitores conectados"/>
+                                    </Grid>
                                     <ComboBox Style="{StaticResource CmbDark}"
                                               ItemsSource="{Binding Monitors}"
                                               SelectedItem="{Binding SelectedMonitorForProfile}"
                                               DisplayMemberPath="."
-                                              IsEnabled="{Binding SelectedProfile, Converter={StaticResource NullToBool}}"/>
+                                              IsEnabled="{Binding IsMonitorSelectionEditable}"/>
 
                                     <!-- Resolution picker -->
                                     <TextBlock Text="Resolução Alvo" FontSize="11" Foreground="#555575"
@@ -762,7 +844,28 @@
                                               ItemsSource="{Binding AvailableResolutions}"
                                               SelectedItem="{Binding SelectedResolution}"
                                               DisplayMemberPath="."
-                                              IsEnabled="{Binding SelectedProfile, Converter={StaticResource NullToBool}}"/>
+                                              IsEnabled="{Binding IsResolutionEditable}"/>
+
+                                    <!-- Exit resolution picker -->
+                                    <TextBlock Text="Resolução ao Fechar" FontSize="11" Foreground="#555575"
+                                               Margin="0,14,0,5"/>
+                                    <ComboBox Style="{StaticResource CmbDark}"
+                                              ItemsSource="{Binding AvailableResolutions}"
+                                              SelectedItem="{Binding SelectedExitResolution}"
+                                              DisplayMemberPath="."
+                                              IsEnabled="{Binding IsResolutionEditable}"/>
+
+                                    <StackPanel>
+                                        <StackPanel.Style>
+                                            <Style TargetType="StackPanel">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSaturationVisible}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </StackPanel.Style>
 
                                     <!-- Digital Vibrance -->
                                     <Grid Margin="0,14,0,0">
@@ -775,7 +878,8 @@
                                                   IsChecked="{Binding SelectedProfile.VibranceEnabled}"
                                                   Content="Digital Vibrance"
                                                   Foreground="#888899"
-                                                  VerticalAlignment="Center"/>
+                                                  VerticalAlignment="Center"
+                                                  IsEnabled="{Binding IsSaturationEditable}"/>
                                     </Grid>
                                     <!-- NvAPI unavailable warning -->
                                     <Border CornerRadius="6" Background="#331A00"
@@ -799,8 +903,21 @@
                                                  Foreground="#AA5520"/>
                                         </TextBlock>
                                     </Border>
-                                    <Grid Margin="0,8,0,0"
-                                          IsEnabled="{Binding SelectedProfile.VibranceEnabled}">
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsSaturationEditable}" Value="True"/>
+                                                            <Condition Binding="{Binding SelectedProfile.VibranceEnabled}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="IsEnabled" Value="True"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="48"/>
@@ -824,7 +941,7 @@
                                         </TextBlock>
                                     </Grid>
 
-                                    <!-- Saturação Extra (S-curve gamma ramp) -->
+                                    <!-- Saturação Extra -->
                                     <Grid Margin="0,14,0,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -835,11 +952,25 @@
                                                   IsChecked="{Binding SelectedProfile.ExtraSaturationEnabled}"
                                                   Content="Saturação Extra"
                                                   Foreground="#888899"
-                                                  VerticalAlignment="Center"/>
+                                                  VerticalAlignment="Center"
+                                                  IsEnabled="{Binding IsSaturationEditable}"/>
                                     </Grid>
 
-                                    <Grid Margin="0,8,0,0"
-                                          IsEnabled="{Binding SelectedProfile.ExtraSaturationEnabled}">
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsSaturationEditable}" Value="True"/>
+                                                            <Condition Binding="{Binding SelectedProfile.ExtraSaturationEnabled}" Value="True"/>
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="IsEnabled" Value="True"/>
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="48"/>
@@ -862,6 +993,7 @@
                                             </TextBlock.Text>
                                         </TextBlock>
                                     </Grid>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
@@ -872,10 +1004,6 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="8"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="8"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
@@ -902,44 +1030,83 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <Button Grid.Column="2" Content="Salvar"
-                                            Command="{Binding SaveCommand}"
-                                            Style="{StaticResource BtnGhost}"/>
+                                    <WrapPanel Grid.Column="2"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center">
+                                        <Button Content="Salvar"
+                                                Command="{Binding SaveCommand}"
+                                                Style="{StaticResource BtnGhost}"
+                                                Margin="0,0,8,8"/>
 
-                                    <Button Grid.Column="4"
-                                            Command="{Binding ApplyNowCommand}">
-                                        <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource BtnGhost}">
-                                                <Setter Property="Content" Value="Aplicar Agora"/>
-                                                <Setter Property="ToolTip" Value="Aplica resolução e vibrance imediatamente"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsApplied}" Value="True">
-                                                        <Setter Property="Content" Value="Reverter"/>
-                                                        <Setter Property="Foreground" Value="#FF6633"/>
-                                                        <Setter Property="BorderBrush" Value="#FF6633"/>
-                                                        <Setter Property="ToolTip" Value="Reverte para a resolução e vibrance originais"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,8,8">
+                                            <Button Content="Aplicar"
+                                                    Command="{Binding ApplyNowCommand}"
+                                                    Style="{StaticResource BtnPrimary}"
+                                                    ToolTip="Aplica as configurações disponíveis imediatamente"
+                                                    Margin="0,0,2,0"/>
+                                            <Button Content="&#x25BE;"
+                                                    Style="{StaticResource BtnPrimary}"
+                                                    Width="36"
+                                                    Padding="0,9"
+                                                    ToolTip="Mais opções de aplicação"
+                                                    Click="OpenButtonMenu">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu Style="{StaticResource ActionMenu}"
+                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                        <MenuItem Header="Apenas Resolução"
+                                                                  Command="{Binding ApplyResolutionCommand}"
+                                                                  Style="{StaticResource ActionMenuItem}"/>
+                                                        <MenuItem Header="Apenas Saturação"
+                                                                  Command="{Binding ApplySaturationCommand}"
+                                                                  Style="{StaticResource NvidiaActionMenuItem}"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </StackPanel>
 
-                                    <Button Grid.Column="6"
-                                            Command="{Binding ToggleMonitorCommand}"
-                                            MinWidth="150">
-                                        <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
-                                                <Setter Property="Content" Value="&#x25B6;  Iniciar Monitor"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
-                                                        <Setter Property="Content" Value="&#x23F9;  Parar Monitor"/>
-                                                        <Setter Property="Background" Value="#CC2244"/>
-                                                        <Setter Property="Foreground" Value="White"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,8,8">
+                                            <Button Content="Reverter"
+                                                    Command="{Binding RevertNowCommand}"
+                                                    Style="{StaticResource BtnDanger}"
+                                                    ToolTip="Reverte as configurações aplicadas"
+                                                    Margin="0,0,2,0"/>
+                                            <Button Content="&#x25BE;"
+                                                    Style="{StaticResource BtnDanger}"
+                                                    Width="36"
+                                                    Padding="0,9"
+                                                    ToolTip="Mais opções de reversão"
+                                                    Click="OpenButtonMenu">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu Style="{StaticResource ActionMenu}"
+                                                                 DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                                                        <MenuItem Header="Apenas Resolução"
+                                                                  Command="{Binding RevertResolutionCommand}"
+                                                                  Style="{StaticResource ActionMenuItem}"/>
+                                                        <MenuItem Header="Apenas Saturação"
+                                                                  Command="{Binding RevertSaturationCommand}"
+                                                                  Style="{StaticResource NvidiaActionMenuItem}"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                            </Button>
+                                        </StackPanel>
+
+                                        <Button Command="{Binding ToggleMonitorCommand}"
+                                                MinWidth="150"
+                                                Margin="0,0,0,8">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource BtnPrimary}">
+                                                    <Setter Property="Content" Value="&#x25B6;  Iniciar Monitor"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                                            <Setter Property="Content" Value="&#x23F9;  Parar Monitor"/>
+                                                            <Setter Property="Background" Value="#CC2244"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </WrapPanel>
                                 </Grid>
                             </Border>
 
@@ -954,13 +1121,13 @@
                                     <TextBlock TextWrapping="Wrap" FontSize="12"
                                                Foreground="#444465" LineHeight="20">
                                         <Run Text="O ResSync detecta quando o .exe selecionado abre e aplica resolução + vibrance no monitor escolhido."/>
-                                        <Run Text="Ao fechar o app, tudo é restaurado automaticamente."/>
+                                        <Run Text="Ao fechar o app, aplica a resolução de saída escolhida ou restaura a anterior."/>
                                         <LineBreak/>
                                         <Run Text="Digital Vibrance altera a mesma configuração do Painel de Controle NVIDIA — requer GPU NVIDIA."
                                              Foreground="#333355"/>
                                         <LineBreak/>
-                                        <Run Text="Saturação Extra aplica uma curva S sobre o pipeline de cor do monitor (funciona sem GPU NVIDIA). Empilha com Digital Vibrance."
-                                             Foreground="#333355"/>
+                                        <Run Text="Saturação Extra soma um reforço ao Digital Vibrance NVIDIA, respeitando o limite real do driver."
+                                              Foreground="#333355"/>
                                     </TextBlock>
                                 </StackPanel>
                             </Border>
@@ -1077,7 +1244,17 @@
                                 Padding="24,11"/>
 
                         <!-- Fix NVIDIA card -->
-                        <Border Style="{StaticResource Card}" Padding="20" Margin="0,14,0,0">
+                        <Border Padding="20" Margin="0,14,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsNvidiaAvailable}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <StackPanel>
                                 <TextBlock Text="FERRAMENTAS NVIDIA"
                                            Style="{StaticResource SectionLabel}"
@@ -1153,9 +1330,6 @@
                                     <Run Text="As configurações são salvas em "/>
                                     <Run Text="%AppData%\ResSync\config.json"
                                          Foreground="#00D4FF" FontFamily="Consolas"/>
-                                    <LineBreak/>
-                                    <Run Text="Digital Vibrance altera a mesma configuração do Painel de Controle NVIDIA."
-                                         Foreground="#333355"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>

@@ -16,26 +16,33 @@ public interface IDisplayService
     /// <summary>Changes the resolution on the specified monitor. Returns true on success.</summary>
     bool SetResolution(string? deviceName, DisplayResolution resolution);
 
-    /// <summary>Restores the resolution that was active before the last SetResolution call.</summary>
-    bool RestoreResolution(string? deviceName);
+    /// <summary>Restores the resolution active before SetResolution, or applies the supplied exit resolution.</summary>
+    bool RestoreResolution(string? deviceName, DisplayResolution? exitResolution = null);
 
-    /// <summary>
-    /// Sets the digital saturation / vibrance for a monitor using the GDI gamma ramp approach.
-    /// <para>percent: 0 = natural, 100 = full driver limit (≈ 2× saturation).</para>
-    /// Returns true if the ramp was applied.
-    /// </summary>
+    /// <summary>Sets NVIDIA Digital Vibrance for a monitor. percent: 0 = neutral, 100 = driver maximum.</summary>
     bool SetVibrance(string? deviceName, int percent);
 
-    /// <summary>Restores the gamma ramp that was active before the last SetVibrance call.</summary>
+    /// <summary>Returns current NVIDIA Digital Vibrance percent, or null when unavailable.</summary>
+    int? GetCurrentVibrance(string? deviceName);
+
+    /// <summary>Returns current raw NVIDIA Digital Vibrance driver level, or null when unavailable.</summary>
+    int? GetCurrentVibranceRawLevel(string? deviceName);
+
+    /// <summary>Restores the NVIDIA Digital Vibrance level that was active before the last SetVibrance call.</summary>
     bool RestoreVibrance(string? deviceName);
 
-    /// <summary>
-    /// Applies an S-curve gamma ramp on top of the current colour pipeline, making colours more vivid.
-    /// <para>percent: 0 = natural, 100 = maximum S-curve intensity.</para>
-    /// Returns true if the ramp was applied.
-    /// </summary>
+    /// <summary>Restores a previously captured raw NVIDIA Digital Vibrance driver level.</summary>
+    bool RestoreVibranceLevel(string? deviceName, int rawLevel);
+
+    /// <summary>Applies the experimental gamma-ramp boost used only beyond the NVIDIA driver limit.</summary>
     bool SetExtraSaturation(string? deviceName, int percent);
 
     /// <summary>Restores the gamma ramp saved before the last SetExtraSaturation call.</summary>
     bool RestoreExtraSaturation(string? deviceName);
+
+    /// <summary>Clears a stale extra-saturation gamma ramp by applying a neutral linear ramp.</summary>
+    bool ResetExtraSaturation(string? deviceName);
+
+    /// <summary>Returns true when the current gamma ramp differs from a neutral linear ramp.</summary>
+    bool IsExtraSaturationActive(string? deviceName);
 }

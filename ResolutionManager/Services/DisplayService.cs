@@ -1,4 +1,7 @@
 using System.Runtime.InteropServices;
+using System.Management;
+using System.Text;
+using Microsoft.Win32;
 using ResolutionManager.Models;
 using ResolutionManager.Native;
 
@@ -27,30 +30,310 @@ public sealed class DisplayService : IDisplayService
     public IReadOnlyList<DisplayMonitor> GetMonitors()
     {
         var monitors = new List<DisplayMonitor>();
-        var device = NewDisplayDevice();
-        uint i = 0;
-        while (NativeMethods.EnumDisplayDevices(null, i++, ref device, 0))
+        var wmiMonitorNames = GetWmiMonitorNamesByHardwareId();
+
+        for (uint i = 0; ; i++)
         {
+            var device = NewDisplayDevice();
+            if (!NativeMethods.EnumDisplayDevices(null, i, ref device, 0))
+                break;
+
             if ((device.StateFlags & NativeMethods.DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) == 0)
                 continue;
 
-            // Query the monitor attached to this adapter for a friendly name
+            // Query the monitor attached to this adapter for a friendly name and stable identity.
             var monitor = NewDisplayDevice();
             string description = device.DeviceString;
-            if (NativeMethods.EnumDisplayDevices(device.DeviceName, 0, ref monitor, 0)
-                && !string.IsNullOrWhiteSpace(monitor.DeviceString))
+            string stableId = BuildStableMonitorId(device);
+            if (NativeMethods.EnumDisplayDevices(device.DeviceName, 0, ref monitor, 0))
             {
-                description = monitor.DeviceString;
+                description = ResolveMonitorDescription(monitor, device.DeviceString, wmiMonitorNames);
+                stableId = BuildStableMonitorId(monitor) ?? stableId;
             }
 
             monitors.Add(new DisplayMonitor
             {
                 DeviceName  = device.DeviceName,
                 Description = description,
+                StableId    = stableId,
                 IsPrimary   = (device.StateFlags & NativeMethods.DISPLAY_DEVICE_PRIMARY_DEVICE) != 0
             });
         }
         return monitors;
+    }
+
+    private static string BuildStableMonitorId(DISPLAY_DEVICE displayDevice)
+        => NormalizeMonitorIdentity(displayDevice.DeviceID)
+           ?? NormalizeMonitorIdentity(displayDevice.DeviceKey)
+           ?? string.Empty;
+
+    private static string? NormalizeMonitorIdentity(string? identity)
+    {
+        if (string.IsNullOrWhiteSpace(identity))
+            return null;
+
+        const string machineRegistryPrefix = @"\Registry\Machine\";
+
+        string normalized = identity.Trim();
+        if (normalized.StartsWith(machineRegistryPrefix, StringComparison.OrdinalIgnoreCase))
+            normalized = normalized[machineRegistryPrefix.Length..];
+
+        string[] parts = normalized
+            .Replace('#', '\\')
+            .Replace('/', '\\')
+            .Trim('\\')
+            .Split('\\', StringSplitOptions.RemoveEmptyEntries);
+
+        return parts.Length == 0
+            ? null
+            : string.Join("\\", parts).ToUpperInvariant();
+    }
+
+    private static string ResolveMonitorDescription(
+        DISPLAY_DEVICE monitor,
+        string fallback,
+        IReadOnlyDictionary<string, string> wmiMonitorNames)
+    {
+        string? wmiName = ResolveWmiMonitorName(monitor, wmiMonitorNames);
+        if (IsUsableMonitorName(wmiName))
+            return wmiName!;
+
+        string? registryName = ReadMonitorNameFromRegistry(monitor.DeviceID)
+            ?? ReadMonitorNameFromRegistry(monitor.DeviceKey);
+
+        if (IsUsableMonitorName(registryName))
+            return registryName!;
+
+        if (IsUsableMonitorName(monitor.DeviceString))
+            return monitor.DeviceString;
+
+        return string.IsNullOrWhiteSpace(fallback) ? "Monitor" : fallback;
+    }
+
+    private static Dictionary<string, string> GetWmiMonitorNamesByHardwareId()
+    {
+        var names = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var searcher = new ManagementObjectSearcher(
+                @"root\wmi",
+                "SELECT InstanceName, UserFriendlyName FROM WmiMonitorID");
+
+            using ManagementObjectCollection results = searcher.Get();
+            foreach (ManagementObject item in results)
+            {
+                using (item)
+                {
+                    string? instanceName = item["InstanceName"] as string;
+                    string? friendlyName = DecodeWmiString(item["UserFriendlyName"]);
+                    if (!IsUsableMonitorName(friendlyName))
+                        continue;
+
+                    foreach (string hardwareId in ExtractMonitorHardwareIds(instanceName))
+                    {
+                        names.TryAdd(hardwareId, friendlyName!);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn($"Could not resolve monitor names from WMI: {ex.Message}");
+        }
+
+        return names;
+    }
+
+    private static string? ResolveWmiMonitorName(
+        DISPLAY_DEVICE monitor,
+        IReadOnlyDictionary<string, string> wmiMonitorNames)
+    {
+        foreach (string hardwareId in ExtractMonitorHardwareIds(monitor.DeviceID)
+                     .Concat(ExtractMonitorHardwareIds(monitor.DeviceKey)))
+        {
+            if (wmiMonitorNames.TryGetValue(hardwareId, out string? name)
+                && IsUsableMonitorName(name))
+            {
+                return name;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ReadMonitorNameFromRegistry(string? deviceIdentity)
+    {
+        if (string.IsNullOrWhiteSpace(deviceIdentity))
+            return null;
+
+        try
+        {
+            foreach (string path in BuildMonitorRegistryPaths(deviceIdentity))
+            {
+                using RegistryKey? key = Registry.LocalMachine.OpenSubKey(path);
+                string? name = ReadMonitorNameFromRegistryKey(key, depth: 0);
+                if (IsUsableMonitorName(name))
+                    return name;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Warn($"Could not resolve monitor name from registry: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> BuildMonitorRegistryPaths(string deviceIdentity)
+    {
+        const string machineRegistryPrefix = @"\Registry\Machine\";
+
+        if (deviceIdentity.StartsWith(machineRegistryPrefix, StringComparison.OrdinalIgnoreCase))
+            yield return deviceIdentity[machineRegistryPrefix.Length..].TrimStart('\\');
+
+        string normalized = deviceIdentity
+            .Replace('#', '\\')
+            .Replace('/', '\\')
+            .Trim('\\');
+
+        foreach (string hardwareId in ExtractMonitorHardwareIds(normalized))
+        {
+            yield return $@"SYSTEM\CurrentControlSet\Enum\DISPLAY\{hardwareId}";
+            yield return $@"SYSTEM\CurrentControlSet\Enum\MONITOR\{hardwareId}";
+        }
+    }
+
+    private static IEnumerable<string> ExtractMonitorHardwareIds(string? deviceIdentity)
+    {
+        if (string.IsNullOrWhiteSpace(deviceIdentity))
+            yield break;
+
+        string normalized = deviceIdentity
+            .Replace('#', '\\')
+            .Replace('/', '\\')
+            .Trim('\\');
+
+        string[] parts = normalized.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        for (int index = 0; index < parts.Length - 1; index++)
+        {
+            if (parts[index].Equals("DISPLAY", StringComparison.OrdinalIgnoreCase)
+                || parts[index].Equals("MONITOR", StringComparison.OrdinalIgnoreCase))
+            {
+                yield return parts[index + 1];
+            }
+        }
+    }
+
+    private static string? ReadMonitorNameFromRegistryKey(RegistryKey? key, int depth)
+    {
+        if (key is null || depth > 4)
+            return null;
+
+        string? friendlyName = CleanRegistryDisplayName(key.GetValue("FriendlyName") as string);
+        if (IsUsableMonitorName(friendlyName))
+            return friendlyName;
+
+        using (RegistryKey? parameters = key.OpenSubKey("Device Parameters"))
+        {
+            string? edidName = ParseEdidMonitorName(parameters?.GetValue("EDID") as byte[]);
+            if (IsUsableMonitorName(edidName))
+                return edidName;
+        }
+
+        foreach (string subKeyName in key.GetSubKeyNames())
+        {
+            using RegistryKey? subKey = key.OpenSubKey(subKeyName);
+            string? childName = ReadMonitorNameFromRegistryKey(subKey, depth + 1);
+            if (IsUsableMonitorName(childName))
+                return childName;
+        }
+
+        return null;
+    }
+
+    private static string? ParseEdidMonitorName(byte[]? edid)
+    {
+        if (edid is null || edid.Length < 128)
+            return null;
+
+        string? descriptorText = null;
+
+        for (int offset = 54; offset <= 108 && offset + 18 <= edid.Length; offset += 18)
+        {
+            if (edid[offset] != 0 || edid[offset + 1] != 0 || edid[offset + 2] != 0)
+                continue;
+
+            byte tag = edid[offset + 3];
+            if (tag != 0xFC && tag != 0xFE)
+                continue;
+
+            string name = Encoding.ASCII
+                .GetString(edid, offset + 5, 13)
+                .Replace('\0', ' ')
+                .Trim();
+
+            if (!IsUsableMonitorName(name))
+                continue;
+
+            if (tag == 0xFC)
+                return name;
+
+            descriptorText ??= name;
+        }
+
+        return descriptorText;
+    }
+
+    private static string? CleanRegistryDisplayName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        string name = value.Trim();
+        int separator = name.LastIndexOf(';');
+        if (separator >= 0 && separator < name.Length - 1)
+            name = name[(separator + 1)..].Trim();
+
+        return name;
+    }
+
+    private static string? DecodeWmiString(object? value)
+    {
+        if (value is null)
+            return null;
+
+        var chars = new List<char>();
+
+        if (value is Array values)
+        {
+            foreach (object? item in values)
+            {
+                if (item is null)
+                    continue;
+
+                ushort code = Convert.ToUInt16(item);
+                if (code == 0)
+                    break;
+
+                chars.Add((char)code);
+            }
+        }
+
+        string text = new(chars.ToArray());
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    }
+
+    private static bool IsUsableMonitorName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+
+        return !name.StartsWith('@')
+            && !name.Contains("Generic", StringComparison.OrdinalIgnoreCase)
+            && !name.Contains("Genérico", StringComparison.OrdinalIgnoreCase)
+            && !name.Contains("Monitor PnP", StringComparison.OrdinalIgnoreCase)
+            && !name.Contains("PnP Monitor", StringComparison.OrdinalIgnoreCase);
     }
 
     // ── Resolution API ────────────────────────────────────────────────────────
@@ -103,11 +386,14 @@ public sealed class DisplayService : IDisplayService
         return ApplyResolution(deviceName, resolution);
     }
 
-    public bool RestoreResolution(string? deviceName)
+    public bool RestoreResolution(string? deviceName, DisplayResolution? exitResolution = null)
     {
         string key = NormaliseKey(deviceName);
-        if (!_savedResolutions.TryGetValue(key, out var saved)) return false;
-        bool ok = ApplyResolution(deviceName, saved);
+        if (exitResolution is null && !_savedResolutions.TryGetValue(key, out _))
+            return false;
+
+        var target = exitResolution ?? _savedResolutions[key];
+        bool ok = ApplyResolution(deviceName, target);
         if (ok) _savedResolutions.Remove(key);
         return ok;
     }
@@ -138,6 +424,22 @@ public sealed class DisplayService : IDisplayService
         return ok;
     }
 
+    public int? GetCurrentVibrance(string? deviceName)
+    {
+        if (!NvApiService.IsAvailable) return null;
+
+        int percent = NvApiService.GetCurrentPercent(deviceName);
+        return percent == int.MinValue ? null : percent;
+    }
+
+    public int? GetCurrentVibranceRawLevel(string? deviceName)
+    {
+        if (!NvApiService.IsAvailable) return null;
+
+        int level = NvApiService.GetCurrentLevel(deviceName);
+        return level == int.MinValue ? null : level;
+    }
+
     public bool RestoreVibrance(string? deviceName)
     {
         string key = NormaliseKey(deviceName);
@@ -154,23 +456,25 @@ public sealed class DisplayService : IDisplayService
         return ok;
     }
 
-    // ── Extra Saturation via GDI S-curve gamma ramp ───────────────────────────
+    public bool RestoreVibranceLevel(string? deviceName, int rawLevel)
+        => NvApiService.IsAvailable && NvApiService.RestoreToLevel(deviceName, rawLevel);
+
+    // ── Extra Saturation via GDI gamma ramp ──────────────────────────────────
 
     /// <summary>
-    /// Applies an S-curve gamma ramp that makes colours appear more vivid.
-    /// Stackable on top of NvAPI Digital Vibrance; uses GDI SetDeviceGammaRamp.
+    /// Applies a mild midpoint-preserving channel curve as an experimental boost beyond
+    /// the NVIDIA driver limit. This is not true Digital Vibrance, but avoids the
+    /// aggressive lift/dimming that made the image white or too dark.
     /// </summary>
     public bool SetExtraSaturation(string? deviceName, int percent)
     {
+        if (!NvApiService.IsAvailable) return false;
+
         percent = Math.Clamp(percent, 0, 100);
         string key = NormaliseKey(deviceName);
 
-        IntPtr hDc = CreateMonitorDC(deviceName);
-        if (hDc == IntPtr.Zero) return false;
-
-        try
+        return WithMonitorDC(deviceName, hDc =>
         {
-            // Save original ramp only once per monitor per session
             if (!_savedRamps.ContainsKey(key))
             {
                 var orig = new RAMP
@@ -179,24 +483,18 @@ public sealed class DisplayService : IDisplayService
                     Green = new ushort[256],
                     Blue  = new ushort[256]
                 };
+
                 if (!NativeMethods.GetDeviceGammaRamp(hDc, ref orig))
-                {
-                    // Driver doesn't support read-back; build a neutral linear ramp
-                    for (int i = 0; i < 256; i++)
-                        orig.Red[i] = orig.Green[i] = orig.Blue[i] = (ushort)(i * 257);
-                }
+                    orig = BuildLinearRamp();
+
                 _savedRamps[key] = orig;
             }
 
-            RAMP ramp = BuildSaturationRamp(percent);
+            RAMP ramp = BuildExtraSaturationRamp(_savedRamps[key], percent);
             bool ok = NativeMethods.SetDeviceGammaRamp(hDc, ref ramp);
             if (ok) _satActive.Add(key);
             return ok;
-        }
-        finally
-        {
-            NativeMethods.DeleteDC(hDc);
-        }
+        });
     }
 
     public bool RestoreExtraSaturation(string? deviceName)
@@ -204,10 +502,7 @@ public sealed class DisplayService : IDisplayService
         string key = NormaliseKey(deviceName);
         if (!_satActive.Contains(key)) return false;
 
-        IntPtr hDc = CreateMonitorDC(deviceName);
-        if (hDc == IntPtr.Zero) return false;
-
-        try
+        return WithMonitorDC(deviceName, hDc =>
         {
             RAMP ramp;
             if (_savedRamps.TryGetValue(key, out var saved))
@@ -217,14 +512,7 @@ public sealed class DisplayService : IDisplayService
             else
             {
                 // Fallback: linear (neutral) ramp
-                ramp = new RAMP
-                {
-                    Red   = new ushort[256],
-                    Green = new ushort[256],
-                    Blue  = new ushort[256]
-                };
-                for (int i = 0; i < 256; i++)
-                    ramp.Red[i] = ramp.Green[i] = ramp.Blue[i] = (ushort)(i * 257);
+                ramp = BuildLinearRamp();
             }
 
             bool ok = NativeMethods.SetDeviceGammaRamp(hDc, ref ramp);
@@ -234,41 +522,127 @@ public sealed class DisplayService : IDisplayService
                 _savedRamps.Remove(key);
             }
             return ok;
-        }
-        finally
-        {
-            NativeMethods.DeleteDC(hDc);
-        }
+        });
     }
 
-    /// <summary>
-    /// Builds an S-curve gamma ramp:  darks → darker, lights → lighter, midpoint preserved.
-    /// Formula: f(t) = t + k·(2t-1)·t·(1-t)  where k = percent/100 × 2.0
-    /// </summary>
-    private static RAMP BuildSaturationRamp(int percent)
+    public bool ResetExtraSaturation(string? deviceName)
+        => WithMonitorDC(deviceName, hDc =>
+        {
+            var ramp = BuildLinearRamp();
+            return NativeMethods.SetDeviceGammaRamp(hDc, ref ramp);
+        });
+
+    public bool IsExtraSaturationActive(string? deviceName)
+        => WithMonitorDC(deviceName, hDc =>
+        {
+            var ramp = new RAMP
+            {
+                Red   = new ushort[256],
+                Green = new ushort[256],
+                Blue  = new ushort[256]
+            };
+
+            return NativeMethods.GetDeviceGammaRamp(hDc, ref ramp) && !IsLinearRamp(ramp);
+        });
+
+    private static RAMP BuildLinearRamp()
     {
-        double k = (percent / 100.0) * 2.0;
         var ramp = new RAMP
         {
             Red   = new ushort[256],
             Green = new ushort[256],
             Blue  = new ushort[256]
         };
+
         for (int i = 0; i < 256; i++)
-        {
-            double t = i / 255.0;
-            double s = t + k * (2 * t - 1) * t * (1 - t);
-            ushort val = (ushort)(Math.Clamp(s, 0.0, 1.0) * 65535);
-            ramp.Red[i] = ramp.Green[i] = ramp.Blue[i] = val;
-        }
+            ramp.Red[i] = ramp.Green[i] = ramp.Blue[i] = (ushort)(i * 257);
+
         return ramp;
     }
 
+    private static RAMP BuildExtraSaturationRamp(RAMP baseRamp, int percent)
+    {
+        // Keep this deliberately conservative. A per-channel gamma ramp can only
+        // approximate extra colour punch; high strengths turn into brightness shifts.
+        double strength = 0.45 * (percent / 100.0);
+        var ramp = new RAMP
+        {
+            Red   = new ushort[256],
+            Green = new ushort[256],
+            Blue  = new ushort[256]
+        };
+
+        for (int i = 0; i < 256; i++)
+        {
+            ramp.Red[i]   = ApplyExtraSaturationCurve(baseRamp.Red[i], strength);
+            ramp.Green[i] = ApplyExtraSaturationCurve(baseRamp.Green[i], strength);
+            ramp.Blue[i]  = ApplyExtraSaturationCurve(baseRamp.Blue[i], strength);
+        }
+
+        return ramp;
+    }
+
+    private static ushort ApplyExtraSaturationCurve(ushort source, double strength)
+    {
+        double t = source / 65535.0;
+        double curved = t + strength * (2.0 * t - 1.0) * t * (1.0 - t);
+        return (ushort)Math.Round(Math.Clamp(curved, 0.0, 1.0) * 65535);
+    }
+
+    private static bool IsLinearRamp(RAMP ramp)
+    {
+        for (int i = 0; i < 256; i++)
+        {
+            int expected = i * 257;
+            if (Math.Abs(ramp.Red[i] - expected) > 768
+                || Math.Abs(ramp.Green[i] - expected) > 768
+                || Math.Abs(ramp.Blue[i] - expected) > 768)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>Creates a GDI device context for the given display device name.</summary>
-    private static IntPtr CreateMonitorDC(string? deviceName)
-        => NativeMethods.CreateDC("DISPLAY",
-               string.IsNullOrWhiteSpace(deviceName) ? null : deviceName,
-               null, IntPtr.Zero);
+    private static bool WithMonitorDC(string? deviceName, Func<IntPtr, bool> action)
+    {
+        foreach (var hDc in CreateMonitorDCs(deviceName))
+        {
+            try
+            {
+                if (action(hDc))
+                    return true;
+            }
+            finally
+            {
+                NativeMethods.DeleteDC(hDc);
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<IntPtr> CreateMonitorDCs(string? deviceName)
+    {
+        if (!string.IsNullOrWhiteSpace(deviceName))
+        {
+            IntPtr namedDeviceDc = NativeMethods.CreateDC("DISPLAY", deviceName, null, IntPtr.Zero);
+            if (namedDeviceDc != IntPtr.Zero)
+                yield return namedDeviceDc;
+
+            IntPtr namedDriverDc = NativeMethods.CreateDC(deviceName, null, null, IntPtr.Zero);
+            if (namedDriverDc != IntPtr.Zero)
+                yield return namedDriverDc;
+
+            yield break;
+        }
+
+        IntPtr primaryDc = NativeMethods.CreateDC("DISPLAY", null, null, IntPtr.Zero);
+        if (primaryDc != IntPtr.Zero)
+            yield return primaryDc;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

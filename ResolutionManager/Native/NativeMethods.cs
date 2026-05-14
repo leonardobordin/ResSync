@@ -103,10 +103,10 @@ public static class NativeMethods
 
     // ── GDI DC helpers (for gamma ramp vibrance) ──────────────────────────────
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     public static extern bool GetDeviceGammaRamp(IntPtr hDC, ref RAMP lpRamp);
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     public static extern bool SetDeviceGammaRamp(IntPtr hDC, ref RAMP lpRamp);
 
     [DllImport("user32.dll")]
@@ -116,7 +116,7 @@ public static class NativeMethods
     public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
     /// <summary>Creates a DC for the given device name (e.g. "\\.\DISPLAY1").</summary>
-    [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
+    [DllImport("gdi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern IntPtr CreateDC(string lpszDriver, string? lpszDevice,
         string? lpszOutput, IntPtr lpInitData);
 

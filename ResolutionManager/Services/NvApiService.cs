@@ -124,6 +124,21 @@ internal static class NvApiService
         return _getDVC!(hDisp, 0u, ref info) == NVAPI_OK ? info.currentLevel : int.MinValue;
     }
 
+    public static int GetCurrentPercent(string? deviceName)
+    {
+        if (!IsAvailable) return int.MinValue;
+        IntPtr hDisp = GetDisplayHandle(deviceName);
+        if (hDisp == IntPtr.Zero) return int.MinValue;
+        var info = new NV_DISPLAY_DVC_INFO { version = NV_DVC_INFO_VER };
+        if (_getDVC!(hDisp, 0u, ref info) != NVAPI_OK) return int.MinValue;
+
+        int range = info.maxLevel - info.minLevel;
+        if (range <= 0) return 0;
+
+        double percent = (info.currentLevel - info.minLevel) * 100.0 / range;
+        return (int)Math.Round(Math.Clamp(percent, 0.0, 100.0));
+    }
+
     // ── Loader ────────────────────────────────────────────────────────────────
 
     private static bool Load()
