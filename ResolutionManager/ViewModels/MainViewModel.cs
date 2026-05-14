@@ -16,6 +16,7 @@ public sealed class MainViewModel : BaseViewModel
     private readonly IDisplayService        _displaySvc;
     private readonly IProcessMonitorService _monitorSvc;
     private readonly IConfigurationService  _configSvc;
+    private readonly IUpdateService         _updateSvc;
     private AppConfiguration _config;
 
     // ─── Observable state ─────────────────────────────────────────────────────
@@ -25,6 +26,7 @@ public sealed class MainViewModel : BaseViewModel
     private DisplayResolution? _currentResolution;
     private DisplayMonitor? _selectedMonitorForProfile;
     private string _statusMessage = "Bem-vindo ao ResSync";
+    private string _updateStatusMessage = "Atualizações ainda não verificadas.";
     private bool _isMonitoring;
     private bool _isApplied;
     private bool _resolutionApplied;
@@ -36,6 +38,7 @@ public sealed class MainViewModel : BaseViewModel
     private bool _minimizeToTray;
     private bool _startMinimized;
     private bool _monitorExeAlwaysEnabled;
+    private bool _checkForUpdatesOnStartup;
     private bool _suppressSelectionPersistence;
 
     private readonly record struct SaturationApplyResult(bool AnyApplied, string Message);
@@ -44,12 +47,14 @@ public sealed class MainViewModel : BaseViewModel
     public MainViewModel(
         IDisplayService displayService,
         IProcessMonitorService processMonitorService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        IUpdateService updateService)
     {
         AppLogger.Info("MainViewModel constructor begin");
         _displaySvc = displayService;
         _monitorSvc = processMonitorService;
         _configSvc  = configurationService;
+        _updateSvc  = updateService;
 
         _config = _configSvc.Load();
         _config.AppliedState ??= new AppliedDisplayState();
@@ -61,6 +66,7 @@ public sealed class MainViewModel : BaseViewModel
         _minimizeToTray          = _config.MinimizeToTray;
         _startMinimized          = _config.StartMinimized;
         _monitorExeAlwaysEnabled = _config.MonitorExeAlwaysEnabled;
+        _checkForUpdatesOnStartup = _config.CheckForUpdatesOnStartup;
 
         // Populate monitors
         RefreshMonitors();
@@ -100,6 +106,7 @@ public sealed class MainViewModel : BaseViewModel
         RedetectMonitorsCommand = new RelayCommand(RedetectMonitors);
         SaveSettingsCommand  = new RelayCommand(SaveSettings);
         FixNvidiaCommand     = new RelayCommand(FixNvidia);
+        CheckForUpdatesCommand = new RelayCommand(CheckForUpdatesManually);
 
         SelectedProfile = Profiles.FirstOrDefault();
 
@@ -225,6 +232,12 @@ public sealed class MainViewModel : BaseViewModel
         private set => Set(ref _statusMessage, value);
     }
 
+    public string UpdateStatusMessage
+    {
+        get => _updateStatusMessage;
+        private set => Set(ref _updateStatusMessage, value);
+    }
+
     public bool IsMonitoring
     {
         get => _isMonitoring;
@@ -281,6 +294,14 @@ public sealed class MainViewModel : BaseViewModel
         set => Set(ref _monitorExeAlwaysEnabled, value);
     }
 
+    public bool CheckForUpdatesOnStartup
+    {
+        get => _checkForUpdatesOnStartup;
+        set => Set(ref _checkForUpdatesOnStartup, value);
+    }
+
+    public string CurrentAppVersion => _updateSvc.CurrentVersion;
+
     // ─── Commands ─────────────────────────────────────────────────────────────
     public ICommand AddProfileCommand    { get; }
     public ICommand RemoveProfileCommand { get; }
@@ -296,6 +317,7 @@ public sealed class MainViewModel : BaseViewModel
     public ICommand RedetectMonitorsCommand { get; }
     public ICommand SaveSettingsCommand  { get; }
     public ICommand FixNvidiaCommand     { get; }
+    public ICommand CheckForUpdatesCommand { get; }
 
     /// <summary>True when running on a system with NVIDIA NvAPI support.</summary>
     public bool IsNvidiaAvailable => NvApiService.IsAvailable;
@@ -625,9 +647,86 @@ public sealed class MainViewModel : BaseViewModel
         _config.MinimizeToTray          = _minimizeToTray;
         _config.StartMinimized          = _startMinimized;
         _config.MonitorExeAlwaysEnabled = _monitorExeAlwaysEnabled;
+        _config.CheckForUpdatesOnStartup = _checkForUpdatesOnStartup;
         ApplyStartWithWindows(_startWithWindows);
         PersistConfig();
         StatusMessage = "Configurações gerais salvas!";
+    }
+
+    public async Task CheckForUpdatesOnStartupAsync()
+    {
+        if (!CheckForUpdatesOnStartup)
+            return;
+
+        await CheckForUpdatesAsync(showUpToDateMessage: false);
+    }
+
+    private async void CheckForUpdatesManually()
+        => await CheckForUpdatesAsync(showUpToDateMessage: true);
+
+    private async Task CheckForUpdatesAsync(bool showUpToDateMessage)
+    {
+        try
+        {
+            UpdateStatusMessage = "Verificando atualizações...";
+            StatusMessage = "Verificando atualizações...";
+
+            UpdateInfo update = await _updateSvc.CheckForUpdatesAsync();
+            if (!update.IsUpdateAvailable)
+            {
+                UpdateStatusMessage = $"Você está na versão mais recente ({CurrentAppVersion}).";
+                StatusMessage = "Nenhuma atualização disponível.";
+                if (showUpToDateMessage)
+                {
+                    MessageBox.Show(
+                        $"Você já está usando a versão mais recente do ResSync.\n\nVersão atual: {CurrentAppVersion}",
+                        "ResSync — Atualizações",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            string updateText =
+                $"Nova versão disponível: {update.TagName}\n\n" +
+                $"Versão atual: {CurrentAppVersion}\n" +
+                $"Deseja abrir o download agora?";
+            UpdateStatusMessage = $"Nova versão disponível: {update.TagName}";
+            StatusMessage = $"Atualização disponível: {update.TagName}";
+
+            MessageBoxResult result = MessageBox.Show(
+                updateText,
+                "ResSync — Atualização disponível",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            string url = update.DownloadUrl ?? update.ReleaseUrl;
+            if (!GitHubUpdateService.OpenUrl(url))
+            {
+                MessageBox.Show(
+                    $"Não foi possível abrir o link automaticamente.\n\nAcesse: {update.ReleaseUrl}",
+                    "ResSync — Atualizações",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLogger.Exception("Update check failed", ex);
+            UpdateStatusMessage = "Não foi possível verificar atualizações.";
+            StatusMessage = "Falha ao verificar atualizações.";
+            if (showUpToDateMessage)
+            {
+                MessageBox.Show(
+                    $"Não foi possível verificar atualizações agora.\n\n{ex.Message}",
+                    "ResSync — Atualizações",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
     }
 
     private void FixNvidia()
@@ -1300,6 +1399,7 @@ public sealed class MainViewModel : BaseViewModel
         _config.MinimizeToTray          = _minimizeToTray;
         _config.StartMinimized          = _startMinimized;
         _config.MonitorExeAlwaysEnabled = _monitorExeAlwaysEnabled;
+        _config.CheckForUpdatesOnStartup = _checkForUpdatesOnStartup;
         _configSvc.Save(_config);
     }
 

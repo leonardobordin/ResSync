@@ -20,6 +20,7 @@ Copyright (c) 2026 Leonardo Silva Bordin
 - **Suporte AMD/Outras GPUs** — Mantém somente as opções de resolução, sem exibir controles NVIDIA.
 - **System Tray** — Minimiza para a bandeja do sistema com menu de contexto.
 - **Início com Windows** — Pode iniciar automaticamente com o Windows e já minimizado na bandeja.
+- **Atualizações** — Verifica novas versões nas Releases do GitHub ao abrir ou manualmente pelas configurações.
 - **Perfis Persistentes** — Configurações salvas em JSON em `%AppData%\ResSync\config.json`.
 
 ---
@@ -108,7 +109,8 @@ dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 
 4. Escolha o monitor de destino, a resolução de entrada e a resolução ao fechar.
 5. Em GPUs NVIDIA, configure também Digital Vibrance/Saturação Extra.
 6. Use **Aplicar** ou o submenu de aplicação para testar imediatamente, ou ative o monitoramento para aplicar tudo automaticamente quando o app abrir.
-7. Minimize para a bandeja do sistema para manter o ResSync rodando em segundo plano.
+7. Em **Configurações**, ajuste a verificação automática de atualizações ou use **Buscar Atualização** manualmente.
+8. Minimize para a bandeja do sistema para manter o ResSync rodando em segundo plano.
 
 ---
 

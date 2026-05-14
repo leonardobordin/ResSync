@@ -1215,7 +1215,7 @@
                                               VerticalAlignment="Center"/>
                                 </Grid>
 
-                                <Grid>
+                                <Grid Margin="0,0,0,16">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -1233,6 +1233,25 @@
                                               IsChecked="{Binding MonitorExeAlwaysEnabled}"
                                               VerticalAlignment="Center"/>
                                 </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Verificar atualizações ao abrir"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#C8C8E0"/>
+                                        <TextBlock Text="Busca novas versões nas Releases do GitHub ao iniciar o ResSync."
+                                                   FontSize="11" Foreground="#555575"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox Grid.Column="1"
+                                              Style="{StaticResource Toggle}"
+                                              IsChecked="{Binding CheckForUpdatesOnStartup}"
+                                              VerticalAlignment="Center"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
 
@@ -1242,6 +1261,37 @@
                                 Style="{StaticResource BtnPrimary}"
                                 HorizontalAlignment="Left"
                                 Padding="24,11"/>
+
+                        <!-- Updates card -->
+                        <Border Style="{StaticResource Card}" Padding="20" Margin="0,14,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="ATUALIZAÇÕES"
+                                               Style="{StaticResource SectionLabel}"
+                                               Margin="0,0,0,12"/>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold"
+                                               Foreground="#C8C8E0">
+                                        <Run Text="Versão atual: "/>
+                                        <Run Text="{Binding CurrentAppVersion}" Foreground="#00D4FF"/>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding UpdateStatusMessage}"
+                                               FontSize="11" Foreground="#555575"
+                                               Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <Button Grid.Column="1"
+                                        Content="Buscar Atualização"
+                                        Command="{Binding CheckForUpdatesCommand}"
+                                        Style="{StaticResource BtnGhost}"
+                                        Margin="16,0,0,0"
+                                        VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Fix NVIDIA card -->
                         <Border Padding="20" Margin="0,14,0,0">

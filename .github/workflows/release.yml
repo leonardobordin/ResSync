@@ -37,6 +37,23 @@ jobs:
       - name: Restore
         run: dotnet restore $env:PROJECT_PATH
 
+      - name: Generate release metadata
+        id: version
+        shell: pwsh
+        run: |
+          $now = Get-Date
+          $version = "{0}.{1}.{2}.${{ github.run_number }}" -f $now.Year, $now.Month, $now.Day
+          $attempt = [int]"${{ github.run_attempt }}"
+          $tag = "v$version"
+          if ($attempt -gt 1) {
+            $tag = "$tag-r$attempt"
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "name=ResSync $tag" >> $env:GITHUB_OUTPUT
+          "zip=ResSync-win-x64-$tag.zip" >> $env:GITHUB_OUTPUT
+
       - name: Publish self-contained app
         run: >
           dotnet publish $env:PROJECT_PATH
@@ -44,22 +61,11 @@ jobs:
           -r win-x64
           --self-contained true
           -p:PublishSingleFile=false
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:AssemblyVersion=${{ steps.version.outputs.version }}
+          -p:FileVersion=${{ steps.version.outputs.version }}
+          -p:InformationalVersion=${{ steps.version.outputs.tag }}+${{ github.sha }}
           -o $env:PUBLISH_DIR
-
-      - name: Generate release metadata
-        id: version
-        shell: pwsh
-        run: |
-          $date = Get-Date -Format "yyyy.MM.dd"
-          $attempt = [int]"${{ github.run_attempt }}"
-          $tag = "v$date.${{ github.run_number }}"
-          if ($attempt -gt 1) {
-            $tag = "$tag-r$attempt"
-          }
-
-          "tag=$tag" >> $env:GITHUB_OUTPUT
-          "name=ResSync $tag" >> $env:GITHUB_OUTPUT
-          "zip=ResSync-win-x64-$tag.zip" >> $env:GITHUB_OUTPUT
 
       - name: Pack release asset
         id: pack

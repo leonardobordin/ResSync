@@ -9,6 +9,7 @@ public partial class App
 {
     private readonly IProcessMonitorService _monitorService;
     private readonly IDisplayService        _displayService;
+    private readonly IUpdateService         _updateService;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
     private Views.MainWindow? _mainWindow;
     private MainViewModel? _viewModel;
@@ -18,6 +19,7 @@ public partial class App
         AppLogger.Info("App constructor begin");
         _monitorService = new ProcessMonitorService();
         _displayService = new DisplayService();
+        _updateService = new GitHubUpdateService();
 
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {
@@ -55,7 +57,7 @@ public partial class App
             var configService = new ConfigurationService();
             AppLogger.Info($"Config service ready. Path={configService.ConfigFilePath}");
 
-            _viewModel = new MainViewModel(_displayService, _monitorService, configService);
+            _viewModel = new MainViewModel(_displayService, _monitorService, configService, _updateService);
             AppLogger.Info(
                 $"ViewModel ready. Profiles={_viewModel.Profiles.Count}, StartMinimized={_viewModel.StartMinimized}, MinimizeToTray={_viewModel.MinimizeToTray}");
 
@@ -82,6 +84,8 @@ public partial class App
                 AppLogger.Info("Showing main window");
                 ShowMainWindow();
             }
+
+            _ = _viewModel.CheckForUpdatesOnStartupAsync();
 
             AppLogger.Info("OnStartup complete");
         }

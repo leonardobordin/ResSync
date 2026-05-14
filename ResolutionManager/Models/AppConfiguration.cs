@@ -8,6 +8,7 @@ public class AppConfiguration
     public bool StartMinimized { get; set; } = false;
     public bool MonitoringEnabled { get; set; } = false;
     public bool MonitorExeAlwaysEnabled { get; set; } = true;
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
     public AppliedDisplayState AppliedState { get; set; } = new();
 }
 
