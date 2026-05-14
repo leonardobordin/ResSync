@@ -1,0 +1,116 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build Windows x64 and create release
+    runs-on: windows-latest
+
+    env:
+      PROJECT_PATH: ResolutionManager/ResolutionManager.csproj
+      ARTIFACTS_DIR: ${{ github.workspace }}\artifacts
+      PUBLISH_DIR: ${{ github.workspace }}\artifacts\publish
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore $env:PROJECT_PATH
+
+      - name: Publish self-contained app
+        run: >
+          dotnet publish $env:PROJECT_PATH
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=false
+          -o $env:PUBLISH_DIR
+
+      - name: Generate release metadata
+        id: version
+        shell: pwsh
+        run: |
+          $date = Get-Date -Format "yyyy.MM.dd"
+          $attempt = [int]"${{ github.run_attempt }}"
+          $tag = "v$date.${{ github.run_number }}"
+          if ($attempt -gt 1) {
+            $tag = "$tag-r$attempt"
+          }
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "name=ResSync $tag" >> $env:GITHUB_OUTPUT
+          "zip=ResSync-win-x64-$tag.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Pack release asset
+        id: pack
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:ARTIFACTS_DIR | Out-Null
+
+          $zipName = "${{ steps.version.outputs.zip }}"
+          $zipPath = Join-Path $env:ARTIFACTS_DIR $zipName
+          $shaPath = "$zipPath.sha256"
+
+          if (Test-Path $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+          }
+
+          Compress-Archive -Path "$env:PUBLISH_DIR\*" -DestinationPath $zipPath -Force
+
+          $hash = Get-FileHash -Algorithm SHA256 -Path $zipPath
+          "$($hash.Hash)  $zipName" | Set-Content -Path $shaPath -Encoding ASCII
+
+          "zip_path=$zipPath" >> $env:GITHUB_OUTPUT
+          "sha_path=$shaPath" >> $env:GITHUB_OUTPUT
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ResSync-win-x64
+          path: |
+            ${{ steps.pack.outputs.zip_path }}
+            ${{ steps.pack.outputs.sha_path }}
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $notesPath = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          @"
+          Build automatico do ResSync.
+
+          - Commit: ${{ github.sha }}
+          - Branch: ${{ github.ref_name }}
+          - Runtime: win-x64
+          - Publicacao: self-contained
+
+          Baixe o ZIP, extraia a pasta e execute ResSync.exe.
+          "@ | Set-Content -Path $notesPath -Encoding UTF8
+
+          gh release create "${{ steps.version.outputs.tag }}" `
+            "${{ steps.pack.outputs.zip_path }}" `
+            "${{ steps.pack.outputs.sha_path }}" `
+            --title "${{ steps.version.outputs.name }}" `
+            --notes-file $notesPath `
+            --target "${{ github.sha }}"
