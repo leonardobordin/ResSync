@@ -1,5 +1,7 @@
 # ResSync
 
+Copyright (c) 2026 Leonardo Silva Bordin
+
 > **Projeto desenvolvido inteiramente por Inteligência Artificial (GitHub Copilot / Claude).**
 
 **ResSync** é uma aplicação Windows (WPF) que gerencia automaticamente resolução de tela, taxa de atualização e, em GPUs NVIDIA, Digital Vibrance/saturação ao detectar que jogos ou aplicativos específicos foram iniciados.
@@ -40,6 +42,8 @@
 ```
 ResSync.slnx                      # Arquivo de solução
 README.md                         # Documentação do projeto
+LICENSE                           # Apache License 2.0
+NOTICE                            # Créditos e aviso de atribuição
 docs/
 └── screenshot.png                # Captura de tela da aplicação
 ResolutionManager/                # Projeto principal (WPF)
@@ -110,4 +114,8 @@ dotnet publish ResolutionManager/ResolutionManager.csproj -c Release -r win-x64 
 
 ## Licença
 
-Este projeto é de uso pessoal. Todos os direitos reservados.
+ResSync é um projeto open source licenciado sob a **Apache License 2.0**.
+
+Este projeto foi criado por **Leonardo Silva Bordin**. Ao redistribuir, modificar
+ou publicar versões derivadas, mantenha os arquivos `LICENSE` e `NOTICE` e preserve
+os avisos de copyright e atribuição do autor original.

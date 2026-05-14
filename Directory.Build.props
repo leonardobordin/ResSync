@@ -1,0 +1,26 @@
+<Project>
+  <PropertyGroup>
+    <Authors>Leonardo Silva Bordin</Authors>
+    <Company>Leonardo Silva Bordin</Company>
+    <Product>ResSync</Product>
+    <Copyright>Copyright (c) 2026 Leonardo Silva Bordin</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/leonardobordin/ResSync</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SPDX-License-Identifier</_Parameter1>
+      <_Parameter2>Apache-2.0</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>OriginalAuthor</_Parameter1>
+      <_Parameter2>Leonardo Silva Bordin</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>AttributionNotice</_Parameter1>
+      <_Parameter2>ResSync was created by Leonardo Silva Bordin. Keep LICENSE and NOTICE with redistributions.</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>
