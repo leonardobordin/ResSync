@@ -1277,7 +1277,7 @@
                                     <TextBlock FontSize="13" FontWeight="SemiBold"
                                                Foreground="#C8C8E0">
                                         <Run Text="Versão atual: "/>
-                                        <Run Text="{Binding CurrentAppVersion}" Foreground="#00D4FF"/>
+                                        <Run Text="{Binding CurrentAppVersion, Mode=OneWay}" Foreground="#00D4FF"/>
                                     </TextBlock>
                                     <TextBlock Text="{Binding UpdateStatusMessage}"
                                                FontSize="11" Foreground="#555575"
